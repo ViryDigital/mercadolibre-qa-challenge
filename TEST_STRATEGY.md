@@ -6,11 +6,19 @@ No automatizaría login, verificación de cuenta, evasión de CAPTCHA, checkout,
 
 Tampoco haría aserciones estrictas sobre orden exacto de productos, stock o precios finales, porque cambian por ubicación, vendedor, promociones, cookies y pruebas A/B (variaciones de diseño, textos u orden de elementos para distintos usuarios).
 
-## ¿Cómo manejaría un CAPTCHA en el flujo de búsqueda?
+## ¿Cómo manejaría un CAPTCHA o verificación de cuenta?
 
-No intentaría evadirlo. Si MercadoLibre muestra CAPTCHA o verificación de cuenta, la prueba debe fallar con un mensaje claro indicando que el flujo fue bloqueado por un control de seguridad. En esta implementación se contempla la detección de verificación de cuenta para no ocultar el bloqueo.
+## ¿Cómo manejaría un CAPTCHA o verificación de cuenta?
 
-Para CI, dejaría este E2E como una prueba smoke corta. Las validaciones más amplias las cubriría con pruebas más estables, como API o datos controlados. En un ambiente QA/Staging usaría usuarios de prueba y configuraciones permitidas para evitar bloqueos sin evadir la seguridad del sitio.
+No intentaría evadirlo. Si MercadoLibre muestra CAPTCHA o verificación de cuenta, lo tomaría como un bloqueo del sitio y lo reportaría claramente.
+
+En ejecución local, el test muestra un error claro para saber que el flujo fue bloqueado por MercadoLibre y no por un fallo del framework.
+
+En GitHub Actions, MercadoLibre puede bloquear la ejecución porque corre desde servidores externos. En ese caso, el test se marca como `skipped` solo para esa situación específica. Si ocurre cualquier otro error, el test falla normalmente.
+
+Esta decisión mantiene el pipeline estable sin intentar saltarse controles de seguridad.
+
+Para una solución real en empresa, este tipo de validaciones debería ejecutarse en un ambiente QA o Staging autorizado, con cuentas de prueba y datos controlados.
 
 ## ¿Qué riesgos de flakiness existen y cómo se mitigaron?
 
