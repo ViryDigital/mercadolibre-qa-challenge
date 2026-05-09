@@ -6,7 +6,6 @@ No automatizaría login, verificación de cuenta, evasión de CAPTCHA, checkout,
 
 Tampoco haría aserciones estrictas sobre orden exacto de productos, stock o precios finales, porque cambian por ubicación, vendedor, promociones, cookies y pruebas A/B (variaciones de diseño, textos u orden de elementos para distintos usuarios).
 
-## ¿Cómo manejaría un CAPTCHA o verificación de cuenta?
 
 ## ¿Cómo manejaría un CAPTCHA o verificación de cuenta?
 
