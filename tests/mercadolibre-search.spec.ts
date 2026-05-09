@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 import { searchCriteria } from '../data/search-criteria';
 import { HomePage } from '../pages/home.page';
 import { SearchResultsPage } from '../pages/search-results.page';
@@ -14,56 +14,85 @@ test.describe('Búsqueda E2E en MercadoLibre con validación de API', () => {
     const searchResultsPage = new SearchResultsPage(page);
     const mercadoLibreApiService = new MercadoLibreApiService(request);
 
-    await test.step('Abrir MercadoLibre y seleccionar Mexico', async () => {
-      await homePage.open();
-      await homePage.selectMexicoCountry();
-    });
+    try {
+      await test.step('Abrir MercadoLibre y seleccionar Mexico', async () => {
+        await homePage.open();
+        await homePage.selectMexicoCountry();
+      });
 
-    await test.step('Buscar producto desde la UI', async () => {
-      await homePage.searchProduct(searchCriteria.searchTerm);
-      await searchResultsPage.waitForResults();
-    });
+      await test.step('Buscar producto desde la UI', async () => {
+        await homePage.searchProduct(searchCriteria.searchTerm);
+        await searchResultsPage.waitForResults();
+      });
 
-    await test.step('Aplicar filtros requeridos y ordenamiento', async () => {
-      await searchResultsPage.filterByCondition(searchCriteria.condition);
-      await searchResultsPage.filterByLocation(searchCriteria.locationOptions);
-      await searchResultsPage.sortByLowestPrice();
-    });
+      await test.step('Aplicar filtros requeridos y ordenamiento', async () => {
+        await searchResultsPage.filterByCondition(searchCriteria.condition);
+        await searchResultsPage.filterByLocation(searchCriteria.locationOptions);
+        await searchResultsPage.sortByLowestPrice();
+      });
 
-    const uiProducts = await test.step('Extraer primeros productos desde la UI', async () => {
-      const products = await searchResultsPage.getFirstProducts(searchCriteria.resultsToExtract);
+      const uiProducts = await test.step('Extraer primeros productos desde la UI', async () => {
+        const products = await searchResultsPage.getFirstProducts(searchCriteria.resultsToExtract);
 
-      console.log('Productos obtenidos desde la UI:');
-      console.table(products);
+        console.log('Productos obtenidos desde la UI:');
+        console.table(products);
 
-      return products;
-    });
+        return products;
+      });
 
-    const apiProducts = await test.step('Obtener productos desde la API', async () => {
-      const products = await mercadoLibreApiService.searchProducts(searchCriteria.searchTerm);
+      const apiProducts = await test.step('Obtener productos desde la API', async () => {
+        const products = await mercadoLibreApiService.searchProducts(searchCriteria.searchTerm);
 
-      console.log(`Productos devueltos por la API: ${products.length}`);
+        console.log(`Productos devueltos por la API: ${products.length}`);
 
-      return products;
-    });
+        return products;
+      });
 
-    await test.step('Comparar productos de UI contra productos de API', async () => {
-      const matches = compareProducts(uiProducts, apiProducts);
-      const totalMatches = countMatches(matches);
-      const discrepancies = getDiscrepancies(matches);
+      await test.step('Comparar productos de UI contra productos de API', async () => {
+        const matches = compareProducts(uiProducts, apiProducts);
+        const totalMatches = countMatches(matches);
+        const discrepancies = getDiscrepancies(matches);
 
-      console.log('Coincidencias UI vs API:');
-      console.table(matches);
+        console.log('Coincidencias UI vs API:');
+        console.table(matches);
 
-      if (discrepancies.length > 0) {
-        console.log('Discrepancias encontradas:');
-        console.table(discrepancies);
+        if (discrepancies.length > 0) {
+          console.log('Discrepancias encontradas:');
+          console.table(discrepancies);
+        }
+
+        expect(
+          totalMatches,
+          `Se esperaba que al menos ${searchCriteria.minimumApiMatches} productos de UI aparecieran en los resultados de API`
+        ).toBeGreaterThanOrEqual(searchCriteria.minimumApiMatches);
+      });
+    } catch (error) {
+      if (process.env.CI && (await isSecurityVerificationVisible(page, error))) {
+        test.skip(
+          true,
+          'MercadoLibre mostró CAPTCHA o verificación de cuenta en CI. No se evade este control de seguridad.'
+        );
       }
 
-      expect(
-        totalMatches,
-        `Se esperaba que al menos ${searchCriteria.minimumApiMatches} productos de UI aparecieran en los resultados de API`
-      ).toBeGreaterThanOrEqual(searchCriteria.minimumApiMatches);
-    });
+      throw error;
+    }
   });
 });
+
+async function isSecurityVerificationVisible(page: Page, error: unknown): Promise<boolean> {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  if (/captcha|verificaci[oó]n|account-verification/i.test(errorMessage)) {
+    return true;
+  }
+
+  if (/account-verification/i.test(page.url())) {
+    return true;
+  }
+
+  return page
+    .getByText(/captcha|verificaci[oó]n|por seguridad|robot/i)
+    .first()
+    .isVisible({ timeout: 1000 })
+    .catch(() => false);
+}
