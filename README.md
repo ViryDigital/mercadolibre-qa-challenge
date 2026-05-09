@@ -162,6 +162,11 @@ Pipeline:
 - Ejecuta pruebas en modo headless.
 - Publica el reporte HTML como artifact de la ejecución del workflow.
 
+Run exitoso de GitHub Actions:
+
+https://github.com/ViryDigital/mercadolibre-qa-challenge/actions/runs/25605102843
+
+
 ---
 
 ## Estructura del proyecto
