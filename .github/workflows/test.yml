@@ -8,6 +8,10 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://www.mercadolibre.com.mx
+      API_BASE_URL: https://api.mercadolibre.com
+      SITE_ID: MLM
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4

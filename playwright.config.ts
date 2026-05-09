@@ -30,6 +30,14 @@ export default defineConfig({
 
     headless: true,
 
+    locale: 'es-MX',
+
+    timezoneId: 'America/Mexico_City',
+
+    extraHTTPHeaders: {
+      'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8',
+    },
+
     screenshot: 'only-on-failure',
 
     trace: 'retain-on-failure',

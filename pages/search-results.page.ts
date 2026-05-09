@@ -16,7 +16,7 @@ export class SearchResultsPage {
   }
 
   async filterByCondition(condition: string): Promise<void> {
-    await this.clickFirstAvailableFilterLink([condition]);
+    await this.clickFirstAvailableFilterLink([condition, 'Nuevos']);
   }
 
   async filterByLocation(locationOptions: string[]): Promise<void> {
@@ -39,8 +39,14 @@ export class SearchResultsPage {
     await expect(sortCombobox).toBeVisible();
     await sortCombobox.click();
 
-    await this.page.keyboard.press('ArrowDown');
-    await this.page.keyboard.press('Enter');
+    const lowestPriceOption = this.page.getByText(/Menor precio/i).first();
+
+    if (await lowestPriceOption.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await lowestPriceOption.click();
+    } else {
+      await this.page.keyboard.press('ArrowDown');
+      await this.page.keyboard.press('Enter');
+    }
 
     await this.waitForResults();
   }
@@ -87,7 +93,7 @@ export class SearchResultsPage {
 
     expect(
       products.length,
-      `Se esperaban al menos ${limit} products, but found ${products.length}`
+      `Se esperaban al menos ${limit} productos, pero se encontraron ${products.length}`
     ).toBeGreaterThanOrEqual(limit);
 
     return products.slice(0, limit);
@@ -99,7 +105,7 @@ export class SearchResultsPage {
         .getByRole('link', { name: new RegExp(filterName, 'i') })
         .first();
 
-      if (await filterLink.count()) {
+      if (await filterLink.isVisible({ timeout: 5000 }).catch(() => false)) {
         const href = await filterLink.getAttribute('href');
 
         if (!href) {
@@ -142,10 +148,16 @@ export class SearchResultsPage {
 
   private async ensurePageIsNotBlocked(): Promise<void> {
     const currentUrl = this.page.url();
+    const blockedPageMessage = this.page
+      .getByText(/captcha|verificación|verificacion|account-verification/i)
+      .first();
 
-    if (currentUrl.includes('/account-verification')) {
+    if (
+      currentUrl.includes('/account-verification') ||
+      (await blockedPageMessage.isVisible({ timeout: 1000 }).catch(() => false))
+    ) {
       throw new Error(
-        `MercadoLibre redirigió a verificación de cuenta. URL actual: ${currentUrl}`
+        `MercadoLibre mostró CAPTCHA o verificación de cuenta. URL actual: ${currentUrl}`
       );
     }
   }
